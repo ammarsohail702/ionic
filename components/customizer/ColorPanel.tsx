@@ -39,12 +39,12 @@ export default function ColorPanel() {
 
   return (
     <div className="glass-panel p-4">
-      <h3 className="text-lg font-semibold mb-4 text-white">Colors</h3>
+      <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Colors</h3>
 
       <div className="space-y-4">
         {/* Primary Color */}
         <div>
-          <label className="block text-sm text-white/70 mb-2">Primary Color</label>
+          <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Primary Color</label>
           <div className="flex items-center gap-3">
             <div className="color-picker-wrapper">
               <input
@@ -58,9 +58,9 @@ export default function ColorPanel() {
                 <button
                   key={`primary-${color}`}
                   className={`w-8 h-8 rounded-md border-2 transition-transform hover:scale-110 ${
-                    colors.primaryColor === color ? 'border-ionic-accent' : 'border-white/20'
+                    colors.primaryColor === color ? 'border-ionic-accent' : ''
                   }`}
-                  style={{ backgroundColor: color }}
+                  style={{ backgroundColor: color, borderColor: colors.primaryColor === color ? undefined : 'var(--border-color)' }}
                   onClick={() => setPrimary(color)}
                 />
               ))}
@@ -70,7 +70,7 @@ export default function ColorPanel() {
 
         {/* Secondary Color */}
         <div>
-          <label className="block text-sm text-white/70 mb-2">Secondary Color</label>
+          <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Secondary Color</label>
           <div className="flex items-center gap-3">
             <div className="color-picker-wrapper">
               <input
@@ -84,9 +84,9 @@ export default function ColorPanel() {
                 <button
                   key={`secondary-${color}`}
                   className={`w-8 h-8 rounded-md border-2 transition-transform hover:scale-110 ${
-                    colors.secondaryColor === color ? 'border-ionic-accent' : 'border-white/20'
+                    colors.secondaryColor === color ? 'border-ionic-accent' : ''
                   }`}
-                  style={{ backgroundColor: color }}
+                  style={{ backgroundColor: color, borderColor: colors.secondaryColor === color ? undefined : 'var(--border-color)' }}
                   onClick={() => setSecondary(color)}
                 />
               ))}
@@ -96,7 +96,7 @@ export default function ColorPanel() {
 
         {/* Accent Color */}
         <div>
-          <label className="block text-sm text-white/70 mb-2">Accent Color</label>
+          <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Accent Color</label>
           <div className="flex items-center gap-3">
             <div className="color-picker-wrapper">
               <input
@@ -110,9 +110,9 @@ export default function ColorPanel() {
                 <button
                   key={`accent-${color}`}
                   className={`w-8 h-8 rounded-md border-2 transition-transform hover:scale-110 ${
-                    colors.accentColor === color ? 'border-ionic-accent' : 'border-white/20'
+                    colors.accentColor === color ? 'border-ionic-accent' : ''
                   }`}
-                  style={{ backgroundColor: color }}
+                  style={{ backgroundColor: color, borderColor: colors.accentColor === color ? undefined : 'var(--border-color)' }}
                   onClick={() => setAccent(color)}
                 />
               ))}

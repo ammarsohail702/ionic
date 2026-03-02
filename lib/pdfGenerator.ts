@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import { siteConfig } from '@/config/settings'
 
 interface OrderData {
@@ -34,6 +33,11 @@ interface OrderData {
     country: string
     notes: string
   }
+  // Design images
+  shirtFrontImage?: string
+  shirtBackImage?: string
+  pantsFrontImage?: string
+  pantsBackImage?: string
 }
 
 export async function generateOrderPDF(orderData: OrderData): Promise<Blob> {
@@ -53,7 +57,7 @@ export async function generateOrderPDF(orderData: OrderData): Promise<Blob> {
   pdf.setTextColor(255, 255, 255)
   pdf.setFontSize(24)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('IONIC', 20, 25)
+  pdf.text('AICONZ', 20, 25)
   pdf.setFontSize(12)
   pdf.setFont('helvetica', 'normal')
   pdf.text('Custom Team Uniforms', 20, 33)
@@ -194,19 +198,105 @@ export async function generateOrderPDF(orderData: OrderData): Promise<Blob> {
     yPos += 15
   }
 
-  // Footer
+  // Add design images on a new page
+  const hasShirtImages = orderData.shirtFrontImage || orderData.shirtBackImage
+  const hasPantsImages = orderData.pantsFrontImage || orderData.pantsBackImage
+
+  if (hasShirtImages || hasPantsImages) {
+    pdf.addPage()
+    yPos = 20
+
+    pdf.setTextColor(0, 0, 0)
+    pdf.setFontSize(18)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Design Preview', pageWidth / 2, yPos, { align: 'center' })
+    yPos += 15
+
+    // Shirt images
+    if (hasShirtImages) {
+      pdf.setFontSize(14)
+      pdf.text('Shirt Design', 20, yPos)
+      yPos += 10
+
+      const imgWidth = 80
+      const imgHeight = 80
+
+      if (orderData.shirtFrontImage) {
+        try {
+          pdf.addImage(orderData.shirtFrontImage, 'PNG', 20, yPos, imgWidth, imgHeight)
+          pdf.setFontSize(10)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text('Front View', 20 + imgWidth / 2, yPos + imgHeight + 5, { align: 'center' })
+        } catch (e) {
+          console.warn('Failed to add front shirt image to PDF')
+        }
+      }
+
+      if (orderData.shirtBackImage) {
+        try {
+          pdf.addImage(orderData.shirtBackImage, 'PNG', 110, yPos, imgWidth, imgHeight)
+          pdf.setFontSize(10)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text('Back View', 110 + imgWidth / 2, yPos + imgHeight + 5, { align: 'center' })
+        } catch (e) {
+          console.warn('Failed to add back shirt image to PDF')
+        }
+      }
+
+      yPos += imgHeight + 20
+    }
+
+    // Pants images
+    if (hasPantsImages) {
+      pdf.setFontSize(14)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Pants Design', 20, yPos)
+      yPos += 10
+
+      const imgWidth = 80
+      const imgHeight = 80
+
+      if (orderData.pantsFrontImage) {
+        try {
+          pdf.addImage(orderData.pantsFrontImage, 'PNG', 20, yPos, imgWidth, imgHeight)
+          pdf.setFontSize(10)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text('Front View', 20 + imgWidth / 2, yPos + imgHeight + 5, { align: 'center' })
+        } catch (e) {
+          console.warn('Failed to add front pants image to PDF')
+        }
+      }
+
+      if (orderData.pantsBackImage) {
+        try {
+          pdf.addImage(orderData.pantsBackImage, 'PNG', 110, yPos, imgWidth, imgHeight)
+          pdf.setFontSize(10)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text('Back View', 110 + imgWidth / 2, yPos + imgHeight + 5, { align: 'center' })
+        } catch (e) {
+          console.warn('Failed to add back pants image to PDF')
+        }
+      }
+    }
+  }
+
+  // Footer on last page
   pdf.setFillColor(30, 30, 40)
   pdf.rect(0, pdf.internal.pageSize.getHeight() - 20, pageWidth, 20, 'F')
   pdf.setTextColor(255, 255, 255)
   pdf.setFontSize(8)
-  pdf.text('Ionic Custom Uniforms | Contact: ' + siteConfig.whatsappNumber, 20, pdf.internal.pageSize.getHeight() - 10)
+  pdf.text('Aiconz Custom Uniforms | Contact: ' + siteConfig.whatsappNumber, 20, pdf.internal.pageSize.getHeight() - 10)
   pdf.text('Thank you for your order!', pageWidth - 50, pdf.internal.pageSize.getHeight() - 10)
 
   return pdf.output('blob')
 }
 
 export async function captureCanvasImage(): Promise<string | null> {
-  const canvas = document.getElementById('customizer-canvas') as HTMLCanvasElement
+  // Find the WebGL canvas inside the canvas container
+  const container = document.querySelector('.canvas-container')
+  if (!container) return null
+
+  const canvas = container.querySelector('canvas') as HTMLCanvasElement
   if (!canvas) return null
 
   try {
@@ -215,4 +305,50 @@ export async function captureCanvasImage(): Promise<string | null> {
     console.error('Error capturing canvas:', error)
     return null
   }
+}
+
+// Capture design images for both front and back views
+export async function captureDesignImages(
+  setViewAngle: (angle: 'front' | 'back' | 'free') => void
+): Promise<{ front: string | null; back: string | null }> {
+  const container = document.querySelector('.canvas-container')
+  if (!container) return { front: null, back: null }
+
+  const canvas = container.querySelector('canvas') as HTMLCanvasElement
+  if (!canvas) return { front: null, back: null }
+
+  // Capture front view
+  setViewAngle('front')
+  await new Promise((resolve) => setTimeout(resolve, 500)) // Wait for render
+  let frontImage: string | null = null
+  try {
+    frontImage = canvas.toDataURL('image/png')
+  } catch (e) {
+    console.warn('Failed to capture front view')
+  }
+
+  // Capture back view
+  setViewAngle('back')
+  await new Promise((resolve) => setTimeout(resolve, 500)) // Wait for render
+  let backImage: string | null = null
+  try {
+    backImage = canvas.toDataURL('image/png')
+  } catch (e) {
+    console.warn('Failed to capture back view')
+  }
+
+  // Return to front view
+  setViewAngle('front')
+
+  return { front: frontImage, back: backImage }
+}
+
+// Download image as file
+export function downloadImage(dataUrl: string, filename: string): void {
+  const link = document.createElement('a')
+  link.href = dataUrl
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }

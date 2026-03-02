@@ -2,7 +2,7 @@
 
 export const siteConfig = {
   // Business Info
-  businessName: 'Ionic',
+  businessName: 'Aiconz',
   whatsappNumber: '+447857038584',
 
   // Pricing Settings

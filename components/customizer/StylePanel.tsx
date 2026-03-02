@@ -46,12 +46,12 @@ export default function StylePanel() {
   if (activeProduct === 'shirt') {
     return (
       <div className="glass-panel p-4">
-        <h3 className="text-lg font-semibold mb-4 text-white">Style</h3>
+        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Style</h3>
 
         <div className="space-y-5">
           {/* Collar Type */}
           <div>
-            <label className="block text-sm text-white/70 mb-2">Collar Style</label>
+            <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Collar Style</label>
             <div className="grid grid-cols-2 gap-2">
               {collarTypes.map((collar) => (
                 <button
@@ -60,8 +60,12 @@ export default function StylePanel() {
                   className={`py-3 px-4 rounded-lg text-sm transition-all ${
                     shirt.collarType === collar.id
                       ? 'bg-ionic-accent text-white'
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      : ''
                   }`}
+                  style={shirt.collarType !== collar.id ? {
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-secondary)'
+                  } : undefined}
                 >
                   {collar.name}
                 </button>
@@ -71,7 +75,7 @@ export default function StylePanel() {
 
           {/* Collar Color */}
           <div>
-            <label className="block text-sm text-white/70 mb-2">Collar Color</label>
+            <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Collar Color</label>
             <div className="flex items-center gap-2">
               <div className="flex gap-1 flex-wrap">
                 {quickColors.map((color) => (
@@ -96,7 +100,7 @@ export default function StylePanel() {
 
           {/* Sleeve Type */}
           <div>
-            <label className="block text-sm text-white/70 mb-2">Sleeve Length</label>
+            <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Sleeve Length</label>
             <div className="grid grid-cols-2 gap-2">
               {sleeveTypes.map((sleeve) => (
                 <button
@@ -105,8 +109,12 @@ export default function StylePanel() {
                   className={`py-3 px-4 rounded-lg text-sm transition-all ${
                     shirt.sleeveType === sleeve.id
                       ? 'bg-ionic-accent text-white'
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      : ''
                   }`}
+                  style={shirt.sleeveType !== sleeve.id ? {
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-secondary)'
+                  } : undefined}
                 >
                   {sleeve.name}
                 </button>
@@ -116,7 +124,7 @@ export default function StylePanel() {
 
           {/* Sleeve Design */}
           <div>
-            <label className="block text-sm text-white/70 mb-2">Sleeve Design</label>
+            <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Sleeve Design</label>
             <div className="grid grid-cols-4 gap-2">
               {sleeveDesigns.map((design) => (
                 <button
@@ -125,8 +133,12 @@ export default function StylePanel() {
                   className={`py-3 px-2 rounded-lg text-xs transition-all flex flex-col items-center gap-1 ${
                     shirt.sleeveDesign.design === design.id
                       ? 'bg-ionic-accent text-white'
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      : ''
                   }`}
+                  style={shirt.sleeveDesign.design !== design.id ? {
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-secondary)'
+                  } : undefined}
                 >
                   <span className="text-lg">{design.icon}</span>
                   <span>{design.name}</span>
@@ -137,7 +149,7 @@ export default function StylePanel() {
 
           {/* Sleeve Color */}
           <div>
-            <label className="block text-sm text-white/70 mb-2">Sleeve Color</label>
+            <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Sleeve Color</label>
             <div className="flex items-center gap-2">
               <div className="flex gap-1 flex-wrap">
                 {quickColors.map((color) => (
@@ -163,7 +175,7 @@ export default function StylePanel() {
           {/* Stripe Color (only show if stripe design selected) */}
           {shirt.sleeveDesign.design !== 'solid' && (
             <div>
-              <label className="block text-sm text-white/70 mb-2">Stripe Color</label>
+              <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Stripe Color</label>
               <div className="flex items-center gap-2">
                 <div className="flex gap-1 flex-wrap">
                   {quickColors.map((color) => (
@@ -193,10 +205,10 @@ export default function StylePanel() {
 
   return (
     <div className="glass-panel p-4">
-      <h3 className="text-lg font-semibold mb-4 text-white">Style</h3>
+      <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Style</h3>
 
       <div>
-        <label className="block text-sm text-white/70 mb-2">Length</label>
+        <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Length</label>
         <div className="grid grid-cols-2 gap-2">
           {pantsTypes.map((type) => (
             <button
@@ -205,8 +217,12 @@ export default function StylePanel() {
               className={`py-3 px-4 rounded-lg text-sm transition-all ${
                 pants.pantsType === type.id
                   ? 'bg-ionic-accent text-white'
-                  : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  : ''
               }`}
+              style={pants.pantsType !== type.id ? {
+                backgroundColor: 'var(--input-bg)',
+                color: 'var(--text-secondary)'
+              } : undefined}
             >
               {type.name}
             </button>

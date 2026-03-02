@@ -40,26 +40,29 @@ export default function DesignEditor({ onClose }: DesignEditorProps) {
   // Generate unique ID for layers
   const generateId = () => `layer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-  // Save state to history
+  // Save state to history - use ref for historyIndex to avoid stale closures
+  const historyIndexRef = useRef(historyIndex)
+  historyIndexRef.current = historyIndex
+
   const saveToHistory = useCallback(() => {
     if (!fabricRef.current || isRestoringRef.current) return
 
     const json = JSON.stringify(fabricRef.current.toJSON())
     setHistory((prev) => {
-      const newHistory = prev.slice(0, historyIndex + 1)
+      const newHistory = prev.slice(0, historyIndexRef.current + 1)
       newHistory.push(json)
       if (newHistory.length > 50) newHistory.shift()
       return newHistory
     })
     setHistoryIndex((prev) => Math.min(prev + 1, 49))
-  }, [historyIndex])
+  }, [])
 
-  // Sync canvas to store
-  const syncToStore = useCallback(() => {
+  // Sync canvas to store for a specific side
+  const syncToStoreForSide = useCallback((side: 'front' | 'back') => {
     if (!fabricRef.current) return
 
     const json = JSON.stringify(fabricRef.current.toJSON())
-    setDesignFabricJSON(activeSide, json)
+    setDesignFabricJSON(side, json)
 
     // Generate high-res texture with transparency
     const tempCanvas = document.createElement('canvas')
@@ -75,7 +78,7 @@ export default function DesignEditor({ onClose }: DesignEditorProps) {
     tempCtx.drawImage(fabricCanvas, 0, 0, 2048, 2048)
 
     const dataUrl = tempCanvas.toDataURL('image/png')
-    setDesignDataUrl(activeSide, dataUrl)
+    setDesignDataUrl(side, dataUrl)
 
     // Update layers
     const layers = fabricRef.current.getObjects().map((obj, index) => ({
@@ -85,12 +88,42 @@ export default function DesignEditor({ onClose }: DesignEditorProps) {
       visible: obj.visible !== false,
       locked: obj.selectable === false,
     }))
-    setDesignLayers(activeSide, layers as any)
-  }, [activeSide, setDesignFabricJSON, setDesignDataUrl, setDesignLayers])
+    setDesignLayers(side, layers as any)
+  }, [setDesignFabricJSON, setDesignDataUrl, setDesignLayers])
+
+  // Use refs to always have access to current values in event handlers
+  const activeSideRef = useRef(activeSide)
+  activeSideRef.current = activeSide
+
+  const syncToStoreRef = useRef(syncToStoreForSide)
+  syncToStoreRef.current = syncToStoreForSide
+
+  // Sync function that uses refs to always get current values
+  const syncToStore = useCallback(() => {
+    syncToStoreRef.current(activeSideRef.current)
+  }, [])
+
+  // Switch side with proper save/load
+  const handleSwitchSide = useCallback((newSide: 'front' | 'back') => {
+    if (newSide === activeSide) return
+
+    // Save current canvas state to current side before switching
+    if (fabricRef.current) {
+      syncToStoreForSide(activeSide)
+    }
+
+    // Switch to new side - canvas will be reinitialized via useEffect
+    setDesignActiveSide(newSide)
+  }, [activeSide, syncToStoreForSide, setDesignActiveSide])
 
   // Initialize Fabric.js canvas
   useEffect(() => {
     if (!canvasRef.current) return
+
+    // Reset history for new side
+    setHistory([])
+    setHistoryIndex(-1)
+    setSelectedObject(null)
 
     const canvas = new FabricCanvas(canvasRef.current, {
       width: 600,
@@ -107,10 +140,16 @@ export default function DesignEditor({ onClose }: DesignEditorProps) {
     if (existingJSON) {
       canvas.loadFromJSON(JSON.parse(existingJSON)).then(() => {
         canvas.renderAll()
-        saveToHistory()
+        // Save initial state to history
+        const json = JSON.stringify(canvas.toJSON())
+        setHistory([json])
+        setHistoryIndex(0)
       })
     } else {
-      saveToHistory()
+      // Save empty state to history
+      const json = JSON.stringify(canvas.toJSON())
+      setHistory([json])
+      setHistoryIndex(0)
     }
 
     // Event listeners
@@ -166,13 +205,28 @@ export default function DesignEditor({ onClose }: DesignEditorProps) {
     }
   }, [activeTool, brushConfig])
 
-  // Add text
+  // Get design zone center based on product and side
+  const getDesignZoneCenter = useCallback(() => {
+    if (activeProduct === 'shirt') {
+      // Front chest is upper-left, Back is upper-right
+      return activeSide === 'front' ? { left: 160, top: 220 } : { left: 440, top: 220 }
+    } else {
+      // Pants zones
+      return activeSide === 'front' ? { left: 300, top: 140 } : { left: 300, top: 140 }
+    }
+  }, [activeProduct, activeSide])
+
+  // Add text - place in main design zone
   const addText = useCallback(() => {
     if (!fabricRef.current) return
 
+    const designZoneCenter = getDesignZoneCenter()
+
     const text = new IText('Text', {
-      left: 250,
-      top: 250,
+      left: designZoneCenter.left,
+      top: designZoneCenter.top,
+      originX: 'center',
+      originY: 'center',
       fontFamily: textConfig.fontFamily,
       fontSize: textConfig.fontSize,
       fill: textConfig.fill,
@@ -184,16 +238,19 @@ export default function DesignEditor({ onClose }: DesignEditorProps) {
     fabricRef.current.add(text)
     fabricRef.current.setActiveObject(text)
     fabricRef.current.renderAll()
+    syncToStore()
     saveToHistory()
-  }, [textConfig, saveToHistory])
+  }, [textConfig, saveToHistory, syncToStore, getDesignZoneCenter])
 
-  // Add rectangle
+  // Add rectangle - place in main design zone
   const addRectangle = useCallback(() => {
     if (!fabricRef.current) return
 
+    const designZoneCenter = getDesignZoneCenter()
+
     const rect = new Rect({
-      left: 200,
-      top: 200,
+      left: designZoneCenter.left - 75,
+      top: designZoneCenter.top - 50,
       width: 150,
       height: 100,
       fill: shapeConfig.fill,
@@ -206,16 +263,19 @@ export default function DesignEditor({ onClose }: DesignEditorProps) {
     fabricRef.current.add(rect)
     fabricRef.current.setActiveObject(rect)
     fabricRef.current.renderAll()
+    syncToStore()
     saveToHistory()
-  }, [shapeConfig, saveToHistory])
+  }, [shapeConfig, saveToHistory, syncToStore, getDesignZoneCenter])
 
-  // Add circle
+  // Add circle - place in main design zone
   const addCircle = useCallback(() => {
     if (!fabricRef.current) return
 
+    const designZoneCenter = getDesignZoneCenter()
+
     const circle = new Circle({
-      left: 250,
-      top: 250,
+      left: designZoneCenter.left - 60,
+      top: designZoneCenter.top - 60,
       radius: 60,
       fill: shapeConfig.fill,
       stroke: shapeConfig.stroke,
@@ -227,26 +287,33 @@ export default function DesignEditor({ onClose }: DesignEditorProps) {
     fabricRef.current.add(circle)
     fabricRef.current.setActiveObject(circle)
     fabricRef.current.renderAll()
+    syncToStore()
     saveToHistory()
-  }, [shapeConfig, saveToHistory])
+  }, [shapeConfig, saveToHistory, syncToStore, getDesignZoneCenter])
 
-  // Add image
+  // Add image - place in main design zone
   const addImage = useCallback((dataUrl: string) => {
     if (!fabricRef.current) return
 
+    const designZoneCenter = getDesignZoneCenter()
+
     FabricImage.fromURL(dataUrl).then((img) => {
-      img.scaleToWidth(200)
+      img.scaleToWidth(150)
       img.set({
-        left: 200,
-        top: 200,
+        left: designZoneCenter.left,
+        top: designZoneCenter.top,
+        originX: 'center',
+        originY: 'center',
         data: { layerId: generateId() },
       })
       fabricRef.current?.add(img)
       fabricRef.current?.setActiveObject(img)
       fabricRef.current?.renderAll()
+      // Immediately sync to store so design appears on 3D model
+      syncToStore()
       saveToHistory()
     })
-  }, [saveToHistory])
+  }, [saveToHistory, syncToStore, getDesignZoneCenter])
 
   // Handle image upload
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -341,27 +408,34 @@ export default function DesignEditor({ onClose }: DesignEditorProps) {
       <div className="flex-1 flex flex-col">
         {/* Top bar */}
         <div className="h-14 bg-ionic-dark border-b border-white/10 flex items-center justify-between px-4">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setDesignActiveSide('front')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeSide === 'front'
-                  ? 'bg-ionic-accent text-white'
-                  : 'text-white/60 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              Front
-            </button>
-            <button
-              onClick={() => setDesignActiveSide('back')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeSide === 'back'
-                  ? 'bg-ionic-accent text-white'
-                  : 'text-white/60 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              Back
-            </button>
+          <div className="flex items-center gap-4">
+            {/* Side switcher */}
+            <div className="flex bg-ionic-darker rounded-lg p-1">
+              <button
+                onClick={() => handleSwitchSide('front')}
+                className={`px-5 py-2 rounded-md text-sm font-semibold transition-all ${
+                  activeSide === 'front'
+                    ? 'bg-ionic-accent text-white shadow-lg'
+                    : 'text-white/50 hover:text-white'
+                }`}
+              >
+                Front Side
+              </button>
+              <button
+                onClick={() => handleSwitchSide('back')}
+                className={`px-5 py-2 rounded-md text-sm font-semibold transition-all ${
+                  activeSide === 'back'
+                    ? 'bg-ionic-accent text-white shadow-lg'
+                    : 'text-white/50 hover:text-white'
+                }`}
+              >
+                Back Side
+              </button>
+            </div>
+            {/* Current side indicator */}
+            <span className="text-white/70 text-sm">
+              Editing: <span className="text-ionic-accent font-semibold uppercase">{activeSide}</span>
+            </span>
           </div>
 
           {/* Undo/Redo */}
@@ -403,49 +477,104 @@ export default function DesignEditor({ onClose }: DesignEditorProps) {
         {/* Canvas */}
         <div className="flex-1 flex items-center justify-center bg-[#1a1a2e] overflow-auto p-8">
           <div className="relative">
-            {/* Product template background */}
+            {/* Side indicator badge */}
+            <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-10">
+              <div className={`px-6 py-2 rounded-full text-sm font-bold uppercase tracking-wider ${
+                activeSide === 'front'
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
+                  : 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+              }`}>
+                {activeSide} Design
+              </div>
+            </div>
+            {/* Product template background - UV mapped zones */}
             <div
-              className="absolute inset-0 pointer-events-none flex items-center justify-center"
+              className="absolute inset-0 pointer-events-none"
               style={{ zIndex: 0 }}
             >
               <svg
                 width="600"
                 height="600"
                 viewBox="0 0 600 600"
-                className="opacity-20"
+                className="opacity-40"
               >
                 {activeProduct === 'shirt' ? (
-                  <>
-                    {/* Shirt outline */}
-                    <path
-                      d="M150 80 L100 120 L60 180 L80 200 L120 180 L120 520 L480 520 L480 180 L520 200 L540 180 L500 120 L450 80 L380 80 C380 120 340 150 300 150 C260 150 220 120 220 80 L150 80 Z"
-                      fill="none"
-                      stroke="#ffffff"
-                      strokeWidth="2"
-                      strokeDasharray="10,5"
-                    />
-                    {/* Center guide */}
-                    <line x1="300" y1="150" x2="300" y2="520" stroke="#ffffff" strokeWidth="1" strokeDasharray="5,5" opacity="0.5" />
-                    {/* Chest area guide */}
-                    <rect x="150" y="180" width="300" height="200" fill="none" stroke="#4ade80" strokeWidth="1" strokeDasharray="5,5" opacity="0.5" />
-                    <text x="300" y="280" textAnchor="middle" fill="#4ade80" fontSize="12" opacity="0.7">Main Design Area</text>
-                  </>
+                  activeSide === 'front' ? (
+                    <>
+                      {/* FRONT - UV Layout based on actual GLB model */}
+                      {/* FRONT CHEST - positioned in upper-left based on typical shirt UV */}
+                      <rect x="40" y="80" width="240" height="280" fill="none" stroke="#4ade80" strokeWidth="2" strokeDasharray="6,4" />
+                      <rect x="40" y="80" width="240" height="280" fill="#4ade80" opacity="0.08" />
+                      <text x="160" y="200" textAnchor="middle" fill="#4ade80" fontSize="14" fontWeight="bold">FRONT CHEST</text>
+                      <text x="160" y="220" textAnchor="middle" fill="#4ade80" fontSize="11">Place design here</text>
+
+                      {/* Center area - typically side/seam */}
+                      <rect x="300" y="80" width="120" height="280" fill="none" stroke="#666" strokeWidth="1" strokeDasharray="4,4" />
+                      <text x="360" y="220" textAnchor="middle" fill="#666" fontSize="9">Side</text>
+
+                      {/* Right area - back wraps here */}
+                      <rect x="440" y="80" width="140" height="280" fill="none" stroke="#888" strokeWidth="1" strokeDasharray="4,4" />
+                      <text x="510" y="220" textAnchor="middle" fill="#888" fontSize="9">Back area</text>
+
+                      {/* Sleeves at bottom */}
+                      <rect x="40" y="400" width="200" height="160" fill="none" stroke="#888" strokeWidth="1" strokeDasharray="4,4" />
+                      <text x="140" y="480" textAnchor="middle" fill="#666" fontSize="10">Sleeves</text>
+                    </>
+                  ) : (
+                    <>
+                      {/* BACK - UV Layout */}
+                      {/* BACK - positioned based on UV wrap */}
+                      <rect x="320" y="80" width="240" height="280" fill="none" stroke="#a855f7" strokeWidth="2" strokeDasharray="6,4" />
+                      <rect x="320" y="80" width="240" height="280" fill="#a855f7" opacity="0.08" />
+                      <text x="440" y="200" textAnchor="middle" fill="#a855f7" fontSize="14" fontWeight="bold">BACK</text>
+                      <text x="440" y="220" textAnchor="middle" fill="#a855f7" fontSize="11">Place design here</text>
+
+                      {/* Left area - front wraps here */}
+                      <rect x="40" y="80" width="140" height="280" fill="none" stroke="#888" strokeWidth="1" strokeDasharray="4,4" />
+                      <text x="110" y="220" textAnchor="middle" fill="#888" fontSize="9">Front area</text>
+
+                      {/* Center - side/seam */}
+                      <rect x="200" y="80" width="100" height="280" fill="none" stroke="#666" strokeWidth="1" strokeDasharray="4,4" />
+                      <text x="250" y="220" textAnchor="middle" fill="#666" fontSize="9">Side</text>
+
+                      {/* Sleeves at bottom */}
+                      <rect x="360" y="400" width="200" height="160" fill="none" stroke="#888" strokeWidth="1" strokeDasharray="4,4" />
+                      <text x="460" y="480" textAnchor="middle" fill="#666" fontSize="10">Sleeves</text>
+                    </>
+                  )
                 ) : (
-                  <>
-                    {/* Pants outline */}
-                    <path
-                      d="M180 60 L180 280 L120 550 L220 550 L260 320 L300 320 L340 550 L480 550 L420 280 L420 60 L180 60 Z"
-                      fill="none"
-                      stroke="#ffffff"
-                      strokeWidth="2"
-                      strokeDasharray="10,5"
-                    />
-                    {/* Center guide */}
-                    <line x1="300" y1="60" x2="300" y2="320" stroke="#ffffff" strokeWidth="1" strokeDasharray="5,5" opacity="0.5" />
-                    {/* Design area guide */}
-                    <rect x="200" y="100" width="200" height="150" fill="none" stroke="#4ade80" strokeWidth="1" strokeDasharray="5,5" opacity="0.5" />
-                    <text x="300" y="175" textAnchor="middle" fill="#4ade80" fontSize="12" opacity="0.7">Main Design Area</text>
-                  </>
+                  activeSide === 'front' ? (
+                    <>
+                      {/* PANTS FRONT - UV Layout */}
+                      {/* Left leg */}
+                      <rect x="40" y="200" width="200" height="380" fill="none" stroke="#888" strokeWidth="1" strokeDasharray="4,4" />
+                      <text x="140" y="400" textAnchor="middle" fill="#666" fontSize="10">Left Leg</text>
+
+                      {/* Front waist/thigh - main design area */}
+                      <rect x="160" y="40" width="280" height="200" fill="none" stroke="#4ade80" strokeWidth="2" strokeDasharray="6,4" />
+                      <rect x="160" y="40" width="280" height="200" fill="#4ade80" opacity="0.05" />
+                      <text x="300" y="130" textAnchor="middle" fill="#4ade80" fontSize="14" fontWeight="bold">FRONT</text>
+                      <text x="300" y="150" textAnchor="middle" fill="#4ade80" fontSize="11">Place your design here</text>
+
+                      {/* Right leg */}
+                      <rect x="360" y="200" width="200" height="380" fill="none" stroke="#888" strokeWidth="1" strokeDasharray="4,4" />
+                      <text x="460" y="400" textAnchor="middle" fill="#666" fontSize="10">Right Leg</text>
+                    </>
+                  ) : (
+                    <>
+                      {/* PANTS BACK - UV Layout */}
+                      <rect x="40" y="200" width="200" height="380" fill="none" stroke="#888" strokeWidth="1" strokeDasharray="4,4" />
+                      <text x="140" y="400" textAnchor="middle" fill="#666" fontSize="10">Left Leg</text>
+
+                      <rect x="160" y="40" width="280" height="200" fill="none" stroke="#a855f7" strokeWidth="2" strokeDasharray="6,4" />
+                      <rect x="160" y="40" width="280" height="200" fill="#a855f7" opacity="0.05" />
+                      <text x="300" y="130" textAnchor="middle" fill="#a855f7" fontSize="14" fontWeight="bold">BACK</text>
+                      <text x="300" y="150" textAnchor="middle" fill="#a855f7" fontSize="11">Place your design here</text>
+
+                      <rect x="360" y="200" width="200" height="380" fill="none" stroke="#888" strokeWidth="1" strokeDasharray="4,4" />
+                      <text x="460" y="400" textAnchor="middle" fill="#666" fontSize="10">Right Leg</text>
+                    </>
+                  )
                 )}
               </svg>
             </div>

@@ -32,7 +32,7 @@ export function generateWhatsAppMessage(order: OrderSummary): string {
   const totalShirts = order.shirtOrder.reduce((sum, o) => sum + o.quantity, 0)
   const totalPants = order.pantsOrder.reduce((sum, o) => sum + o.quantity, 0)
 
-  let message = `🏆 *NEW ORDER - IONIC UNIFORMS*\n\n`
+  let message = `🏆 *NEW ORDER - AICONZ UNIFORMS*\n\n`
   message += `📋 *Order ID:* ORD-${Date.now().toString(36).toUpperCase()}\n\n`
 
   // Customer info
@@ -83,8 +83,11 @@ export function generateWhatsAppMessage(order: OrderSummary): string {
     message += `\n`
   }
 
-  message += `📎 *PDF with full design details attached separately*\n\n`
-  message += `Thank you for choosing Ionic! 🙏`
+  message += `\n📎 *ATTACHMENTS TO SEND:*\n`
+  message += `✅ PDF order details (downloaded)\n`
+  message += `✅ Design preview images (downloaded)\n\n`
+  message += `👆 Please attach the downloaded files to this chat.\n\n`
+  message += `Thank you for choosing Aiconz! 🙏`
 
   return message
 }

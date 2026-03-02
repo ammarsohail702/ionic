@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useCustomizerStore } from '@/lib/store'
-import { generateOrderPDF } from '@/lib/pdfGenerator'
+import { generateOrderPDF, captureDesignImages, downloadImage } from '@/lib/pdfGenerator'
 import { generateWhatsAppMessage, openWhatsApp, validateOrder } from '@/lib/whatsapp'
 
 import ColorPanel from '@/components/customizer/ColorPanel'
@@ -14,6 +14,7 @@ import EditorPanel from '@/components/customizer/EditorPanel'
 import SizeQuantityTable from '@/components/order/SizeQuantityTable'
 import OrderForm from '@/components/order/OrderForm'
 import PriceDisplay from '@/components/order/PriceDisplay'
+import ThemeToggle from '@/components/ThemeToggle'
 
 // Dynamically import Canvas3D to avoid SSR issues with Three.js
 const Canvas3D = dynamic(() => import('@/components/3d/Canvas3D'), {
@@ -67,20 +68,63 @@ export default function CustomizePage() {
         return
       }
 
-      // Generate PDF
+      // Capture design images for shirt
+      const currentProduct = activeProduct
+      let shirtImages = { front: null as string | null, back: null as string | null }
+      let pantsImages = { front: null as string | null, back: null as string | null }
+
+      // If we have shirt orders, capture shirt images
+      const totalShirts = shirtOrder.reduce((sum, o) => sum + o.quantity, 0)
+      if (totalShirts > 0) {
+        setActiveProduct('shirt')
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        shirtImages = await captureDesignImages(setViewAngle)
+      }
+
+      // If we have pants orders, capture pants images
+      const totalPants = pantsOrder.reduce((sum, o) => sum + o.quantity, 0)
+      if (totalPants > 0) {
+        setActiveProduct('pants')
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        pantsImages = await captureDesignImages(setViewAngle)
+      }
+
+      // Restore original product view
+      setActiveProduct(currentProduct)
+
+      // Download design images separately for WhatsApp attachment
+      const timestamp = Date.now()
+      if (shirtImages.front) {
+        downloadImage(shirtImages.front, `aiconz-shirt-front-${timestamp}.png`)
+      }
+      if (shirtImages.back) {
+        downloadImage(shirtImages.back, `aiconz-shirt-back-${timestamp}.png`)
+      }
+      if (pantsImages.front) {
+        downloadImage(pantsImages.front, `aiconz-pants-front-${timestamp}.png`)
+      }
+      if (pantsImages.back) {
+        downloadImage(pantsImages.back, `aiconz-pants-back-${timestamp}.png`)
+      }
+
+      // Generate PDF with images
       const pdfBlob = await generateOrderPDF({
         shirt,
         pants,
         shirtOrder,
         pantsOrder,
         deliveryAddress,
+        shirtFrontImage: shirtImages.front || undefined,
+        shirtBackImage: shirtImages.back || undefined,
+        pantsFrontImage: pantsImages.front || undefined,
+        pantsBackImage: pantsImages.back || undefined,
       })
 
       // Download PDF
       const pdfUrl = URL.createObjectURL(pdfBlob)
       const link = document.createElement('a')
       link.href = pdfUrl
-      link.download = `ionic-order-${Date.now()}.pdf`
+      link.download = `aiconz-order-${Date.now()}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -124,27 +168,28 @@ export default function CustomizePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-ionic-darker">
+    <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-ionic-darker/90 backdrop-blur-lg border-b border-white/5">
+      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg border-b transition-colors duration-300" style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-color)' }}>
         <div className="max-w-full mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14">
             <Link href="/" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-ionic-accent to-ionic-accent-light rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">I</span>
+                <span className="text-white font-bold text-sm">A</span>
               </div>
-              <span className="text-white font-display font-bold">IONIC</span>
+              <span className="font-display font-bold" style={{ color: 'var(--text-primary)' }}>AICONZ</span>
             </Link>
 
             {/* Product Selector */}
-            <div className="flex items-center gap-2 bg-white/5 rounded-lg p-1">
+            <div className="flex items-center gap-2 rounded-lg p-1" style={{ backgroundColor: 'var(--input-bg)' }}>
               <button
                 onClick={() => setActiveProduct('shirt')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                   activeProduct === 'shirt'
                     ? 'bg-ionic-accent text-white'
-                    : 'text-white/70 hover:text-white'
+                    : ''
                 }`}
+                style={activeProduct !== 'shirt' ? { color: 'var(--text-secondary)' } : undefined}
               >
                 Shirt
               </button>
@@ -153,8 +198,9 @@ export default function CustomizePage() {
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                   activeProduct === 'pants'
                     ? 'bg-ionic-accent text-white'
-                    : 'text-white/70 hover:text-white'
+                    : ''
                 }`}
+                style={activeProduct !== 'pants' ? { color: 'var(--text-secondary)' } : undefined}
               >
                 Pants
               </button>
@@ -165,7 +211,8 @@ export default function CustomizePage() {
               <span className="text-ionic-accent text-xs font-medium">3D</span>
               <Link
                 href="/customize-2d"
-                className="text-white/50 hover:text-white text-xs transition-colors"
+                className="text-xs transition-colors"
+                style={{ color: 'var(--text-muted)' }}
               >
                 2D
               </Link>
@@ -176,28 +223,34 @@ export default function CustomizePage() {
               <button
                 onClick={() => setViewAngle('front')}
                 className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
-                  viewAngle === 'front' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white'
+                  viewAngle === 'front' ? 'bg-ionic-accent/20 text-ionic-accent' : ''
                 }`}
+                style={viewAngle !== 'front' ? { color: 'var(--text-muted)' } : undefined}
               >
                 Front
               </button>
               <button
                 onClick={() => setViewAngle('back')}
                 className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
-                  viewAngle === 'back' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white'
+                  viewAngle === 'back' ? 'bg-ionic-accent/20 text-ionic-accent' : ''
                 }`}
+                style={viewAngle !== 'back' ? { color: 'var(--text-muted)' } : undefined}
               >
                 Back
               </button>
               <button
                 onClick={() => setViewAngle('free')}
                 className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
-                  viewAngle === 'free' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white'
+                  viewAngle === 'free' ? 'bg-ionic-accent/20 text-ionic-accent' : ''
                 }`}
+                style={viewAngle !== 'free' ? { color: 'var(--text-muted)' } : undefined}
               >
                 360°
               </button>
             </div>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -205,16 +258,17 @@ export default function CustomizePage() {
       {/* Main Content */}
       <div className="pt-14 flex h-screen">
         {/* Left Sidebar - Design/Order Tabs */}
-        <div className="w-80 lg:w-96 bg-ionic-dark border-r border-white/5 flex flex-col overflow-hidden">
+        <div className="w-80 lg:w-96 border-r flex flex-col overflow-hidden transition-colors duration-300" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
           {/* Tab Buttons */}
-          <div className="flex border-b border-white/5">
+          <div className="flex border-b" style={{ borderColor: 'var(--border-color)' }}>
             <button
               onClick={() => setActiveTab('design')}
               className={`flex-1 py-3 text-sm font-medium transition-all ${
                 activeTab === 'design'
                   ? 'text-ionic-accent border-b-2 border-ionic-accent'
-                  : 'text-white/50 hover:text-white'
+                  : ''
               }`}
+              style={{ color: activeTab === 'design' ? undefined : 'var(--text-muted)' }}
             >
               Design
             </button>
@@ -223,8 +277,9 @@ export default function CustomizePage() {
               className={`flex-1 py-3 text-sm font-medium transition-all ${
                 activeTab === 'order'
                   ? 'text-ionic-accent border-b-2 border-ionic-accent'
-                  : 'text-white/50 hover:text-white'
+                  : ''
               }`}
+              style={{ color: activeTab === 'order' ? undefined : 'var(--text-muted)' }}
             >
               Order
             </button>
@@ -243,8 +298,12 @@ export default function CustomizePage() {
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
                         activePanel === panel.id
                           ? 'bg-ionic-accent text-white'
-                          : 'bg-white/5 text-white/70 hover:bg-white/10'
+                          : ''
                       }`}
+                      style={activePanel !== panel.id ? {
+                        backgroundColor: 'var(--input-bg)',
+                        color: 'var(--text-secondary)'
+                      } : undefined}
                     >
                       <span>{panel.icon}</span>
                       <span>{panel.name}</span>
@@ -298,9 +357,9 @@ export default function CustomizePage() {
                   )}
                 </button>
 
-                <p className="text-white/40 text-xs text-center">
-                  A PDF with your design will be downloaded automatically.
-                  Please attach it to your WhatsApp message.
+                <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+                  Design images + PDF will download automatically.
+                  Attach them to your WhatsApp message to complete your order.
                 </p>
               </div>
             )}
@@ -312,7 +371,7 @@ export default function CustomizePage() {
           <Canvas3D className="w-full h-full" />
 
           {/* Help text overlay */}
-          <div className="absolute bottom-4 left-4 text-white/30 text-sm">
+          <div className="absolute bottom-4 left-4 text-sm" style={{ color: 'var(--text-muted)' }}>
             Drag to rotate • Scroll to zoom
           </div>
         </div>

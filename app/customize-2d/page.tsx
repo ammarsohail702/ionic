@@ -55,9 +55,9 @@ export default function Customize2DPage() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-ionic-accent rounded-lg flex items-center justify-center text-white font-bold">
-              I
+              A
             </div>
-            <span className="text-xl font-bold text-white">IONIC</span>
+            <span className="text-xl font-bold text-white">AICONZ</span>
           </Link>
 
           <div className="flex items-center gap-4">
