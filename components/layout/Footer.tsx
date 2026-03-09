@@ -9,15 +9,17 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-ionic-accent to-ionic-accent-light rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">A</span>
-              </div>
-              <span className="font-display font-bold text-xl" style={{ color: 'var(--text-primary)' }}>AICONZ</span>
+            <div className="mb-4">
+              <img
+                src="/logo.png"
+                alt="AICONZ"
+                className="h-10 w-auto"
+                style={{ maxWidth: '160px' }}
+              />
             </div>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              Premium custom uniforms for football clubs, schools, and sports teams.
-              Design your perfect kit with our 3D customizer.
+              Premium custom uniforms for sports teams, schools, and brands.
+              Design your perfect kit with our interactive customizer.
             </p>
           </div>
 
@@ -26,18 +28,28 @@ export default function Footer() {
             <h4 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Quick Links</h4>
             <ul className="space-y-2">
               <li>
-                <a href="/customize" className="text-sm transition-colors" style={{ color: 'var(--text-muted)' }}>
-                  Design Your Kit
+                <a href="/customize" className="text-sm transition-colors hover:text-ionic-accent" style={{ color: 'var(--text-muted)' }}>
+                  3D Designer
                 </a>
               </li>
               <li>
-                <a href="#" className="text-sm transition-colors" style={{ color: 'var(--text-muted)' }}>
+                <a href="/designer" className="text-sm transition-colors hover:text-ionic-accent" style={{ color: 'var(--text-muted)' }}>
+                  2D Designer
+                </a>
+              </li>
+              <li>
+                <a href="/samples" className="text-sm transition-colors hover:text-ionic-accent" style={{ color: 'var(--text-muted)' }}>
+                  Request Samples
+                </a>
+              </li>
+              <li>
+                <a href="/about" className="text-sm transition-colors hover:text-ionic-accent" style={{ color: 'var(--text-muted)' }}>
+                  About Us
+                </a>
+              </li>
+              <li>
+                <a href="/#how-it-works" className="text-sm transition-colors hover:text-ionic-accent" style={{ color: 'var(--text-muted)' }}>
                   How It Works
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-sm transition-colors" style={{ color: 'var(--text-muted)' }}>
-                  Pricing
                 </a>
               </li>
             </ul>

@@ -9,20 +9,31 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-ionic-accent to-ionic-accent-light rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">A</span>
-            </div>
-            <span className="font-display font-bold text-xl" style={{ color: 'var(--text-primary)' }}>AICONZ</span>
+          <Link href="/" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="AICONZ"
+              className="h-10 w-auto"
+              style={{ maxWidth: '160px' }}
+            />
           </Link>
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="transition-colors" style={{ color: 'var(--text-secondary)' }}>
+            <Link href="/" className="transition-colors hover:text-ionic-accent" style={{ color: 'var(--text-secondary)' }}>
               Home
             </Link>
-            <Link href="/customize" className="transition-colors" style={{ color: 'var(--text-secondary)' }}>
-              Design Kit
+            <Link href="/customize" className="transition-colors hover:text-ionic-accent" style={{ color: 'var(--text-secondary)' }}>
+              3D Designer
+            </Link>
+            <Link href="/designer" className="transition-colors hover:text-ionic-accent" style={{ color: 'var(--text-secondary)' }}>
+              2D Designer
+            </Link>
+            <Link href="/about" className="transition-colors hover:text-ionic-accent" style={{ color: 'var(--text-secondary)' }}>
+              About
+            </Link>
+            <Link href="/samples" className="transition-colors hover:text-ionic-accent" style={{ color: 'var(--text-secondary)' }}>
+              Samples
             </Link>
           </nav>
 
@@ -30,10 +41,10 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <Link
-              href="/customize"
+              href="/samples"
               className="btn-primary text-sm"
             >
-              Start Designing
+              Get Samples
             </Link>
           </div>
         </div>

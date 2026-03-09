@@ -10,12 +10,13 @@ const config: Config = {
     extend: {
       colors: {
         ionic: {
-          dark: '#0a0a0f',
-          darker: '#050508',
-          accent: '#6366f1',
-          'accent-light': '#818cf8',
-          gold: '#f59e0b',
+          dark: '#1a1a1a',
+          darker: '#111111',
+          accent: '#F5C842',
+          'accent-light': '#FFD966',
+          gold: '#F5C842',
           silver: '#94a3b8',
+          black: '#1a1a1a',
         }
       },
       fontFamily: {

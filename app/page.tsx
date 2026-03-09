@@ -168,16 +168,21 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-r from-ionic-accent to-ionic-accent-light">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-display font-bold text-white mb-6">
+          <h2 className="text-4xl font-display font-bold text-ionic-black mb-6">
             Ready to Design Your Team&apos;s New Look?
           </h2>
-          <p className="text-white/80 text-lg mb-8">
-            Join hundreds of teams who trust Aiconz for their custom uniforms.
-            Start designing now and see your vision come to life.
+          <p className="text-ionic-black/70 text-lg mb-8">
+            Join hundreds of teams who trust AICONZ for their custom uniforms.
+            Request a sample kit or start designing now.
           </p>
-          <Link href="/customize" className="bg-white text-ionic-accent font-semibold py-4 px-8 rounded-lg hover:bg-white/90 transition-colors inline-block text-lg">
-            Launch 3D Designer
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/samples" className="bg-ionic-black text-white font-semibold py-4 px-8 rounded-lg hover:bg-ionic-black/80 transition-colors inline-block text-lg">
+              Request Sample Kit
+            </Link>
+            <Link href="/customize" className="bg-transparent border-2 border-ionic-black text-ionic-black font-semibold py-4 px-8 rounded-lg hover:bg-ionic-black/10 transition-colors inline-block text-lg">
+              Launch 3D Designer
+            </Link>
+          </div>
         </div>
       </section>
 
