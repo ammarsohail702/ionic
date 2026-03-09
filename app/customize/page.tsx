@@ -210,7 +210,7 @@ export default function CustomizePage() {
             <div className="flex items-center gap-3">
               <span className="text-ionic-accent text-xs font-medium">3D</span>
               <Link
-                href="/customize-2d"
+                href="/designer"
                 className="text-xs transition-colors"
                 style={{ color: 'var(--text-muted)' }}
               >
